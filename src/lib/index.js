@@ -1,17 +1,16 @@
 import { parse } from 'babylon';
 import ESTreeRunner from 'estree-runner';
-import typeHandlers from './typeHandlers';
 import defaults from 'lodash.defaults';
+import isFunction from 'lodash.isfunction';
+import writers from './writers';
+import Annotation from './Annotation';
+import AnnotatedSource from './AnnotatedSource';
 
 export default function docItForMe(sources, options = {}) {
   const runner = new ESTreeRunner();
 
   defaults(options, {
-    paramTag: 'param',
-    returnTag: 'returns',
-    defaultParamType: '*',
-    defaultReturnType: '*',
-    paramDescription: name => `The ${name}.`,
+    writer: 'JSDoc',
     parseOptions: {}
   });
 
@@ -23,44 +22,60 @@ export default function docItForMe(sources, options = {}) {
     ]
   });
 
+  const Writer = getWriter(options.writer);
+
   sources = Array.isArray(sources) ? sources : [sources];
 
   return sources.map(source => {
-    return annotate(parseSource(runner, source, options), source);
+    return annotateSource(parseSource(runner, new Writer(options), source, options), source);
   });
 }
 
-function parseSource(runner, source, options = {}) {
-  let results = {
-    annotations: []
-  };
+function getWriter(writer, config) {
+  if (isFunction(writer)) {
+    return writer;
+  } else if (writers.has(writer)) {
+    return writers.get(writer);
+  }
 
-  for (let node of runner.run(parse(source, options.parseOptions))) {
-    if (typeHandlers.hasOwnProperty(node.type)) {
-      let annotation = typeHandlers[node.type].call(this, node, node[runner.parentKey], options, runner);
+  throw new ReferenceError(`Writer ${writer} does not exist`);
+}
 
-      if (annotation !== false) {
-        results.annotations.push(annotation);
-      }
+function parseSource(runner, writer, source, options = {}) {
+  let results = [];
+  let ast = parse(source.raw, options.parseOptions);
+
+  source.ast = ast;
+
+  for (let node of runner.run(ast)) {
+    let annotation = writer.write(node, node[runner.parentKey], source, runner);
+
+    if (Annotation.is(annotation)) {
+      results.push(annotation);
     }
   }
 
   return results;
 }
 
-function annotate(result, source) {
+function annotateSource(annotations, source) {
   let lineOffset = 0;
-  let output = source.split('\n');
+  let output = source.raw.split('\n');
+  
+  annotations.sort((a, b) => a.line - b.line);
 
-  for (let annotation of result.annotations) {
-    let doc = annotation.annotation.map(line => padString(line, annotation.start.column));
-    output.splice(annotation.start.line - 1 + lineOffset, 0, doc.join('\n'));
-    lineOffset++;
+  const result = new AnnotatedSource({ source, annotations });
+
+  for (let annotation of annotations) {
+    let doc = annotation.value.map(line => padString(line, annotation.column));
+
+    output.splice(annotation.line - 1 + lineOffset, annotation.insertLength, doc.join('\n'));
+    lineOffset += (1 - annotation.insertLength);
   }
 
-  result.annotatedSource = output.join('\n');
+  result.value = output.join('\n');
 
-  console.log(result.annotatedSource);
+  // console.log(result.value);
 
   return result;
 }

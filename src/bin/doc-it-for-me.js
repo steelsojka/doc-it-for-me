@@ -5,6 +5,7 @@ import yargs from 'yargs';
 import docItForMe from '../lib';
 import glob from 'glob';
 import fs from 'fs';
+import Source from '../lib/Source';
 
 yargs
   .usage('$0 [OPTIONS] [FILES]')
@@ -21,6 +22,14 @@ if (!yargs.argv._.length) {
 let sources = yargs.argv._
   .map(pattern => glob.sync(pattern))
   .reduce((result, paths) => result.concat(paths), [])
-  .map(filePath => fs.readFileSync(filePath).toString());
+  .map(filePath => {
+    return new Source({
+      raw: fs.readFileSync(filePath).toString(),
+      path: filePath
+    });
+  });
+
 
 let results = docItForMe(sources);
+
+console.log(results[0].value);
