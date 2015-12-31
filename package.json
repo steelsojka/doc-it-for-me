@@ -2,7 +2,7 @@
   "name": "doc-it-for-me",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "lib/index.js",
   "bin": {
     "doc-it-for-me": "bin/doc-it-for-me.js"
   },
