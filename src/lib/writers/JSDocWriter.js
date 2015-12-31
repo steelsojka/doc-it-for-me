@@ -13,7 +13,7 @@ export default class JSDocWriter extends Writer {
       returnTag: 'returns',
       defaultReturnType: '*',
       voidReturnTypes: false,
-      overwriteDocs: true,
+      overwriteDocs: false,
       excludedMethods: [],
       privateMethodMatcher: /^_/,
       rootModulePath: process.cwd(),
@@ -48,7 +48,13 @@ export default class JSDocWriter extends Writer {
 
   FunctionDeclaration(node, parentNode) {
     let block = new JSDocBlockWriter(this.options);
-    let { startLine, insertLength } = this.getStartLine(node);
+    let startLineResults = this.getStartLine(node);
+
+    if (!startLineResults) {
+      return;
+    }
+
+    let { startLine, insertLength } = startLineResults;
     let column = this.getStartColumn(node, parentNode);
 
     block.writeLine(`The ${node.id.name} function.`);
@@ -60,7 +66,7 @@ export default class JSDocWriter extends Writer {
     }
 
     for (let param of node.params) {
-      block.writeLine(this.paramWriter.write(param));
+      block.writeLine(this.paramWriter.write(param), true);
     }
 
     this.writeReturnStatement(block, node);
@@ -77,7 +83,13 @@ export default class JSDocWriter extends Writer {
 
   ClassDeclaration(node, parentNode) {
     let block = new JSDocBlockWriter(this.options);
-    let { startLine, insertLength } = this.getStartLine(node);
+    let startLineResults = this.getStartLine(node);
+
+    if (!startLineResults) {
+      return;
+    }
+
+    let { startLine, insertLength } = startLineResults;
     let column = this.getStartColumn(node, parentNode);
 
     block.writeLine(`The ${node.id.name} class.`);
@@ -102,7 +114,13 @@ export default class JSDocWriter extends Writer {
     }
 
     let block = new JSDocBlockWriter(this.options);
-    let { startLine, insertLength } = this.getStartLine(node);
+    let startLineResults = this.getStartLine(node);
+
+    if (!startLineResults) {
+      return;
+    }
+
+    let { startLine, insertLength } = startLineResults;
     let column = this.getStartColumn(node, parentNode);
 
     block.writeLine(`The ${node.key.name} method.`);
@@ -118,7 +136,7 @@ export default class JSDocWriter extends Writer {
     }
 
     for (let param of node.params) {
-      block.writeLine(this.paramWriter.write(param));
+      block.writeLine(this.paramWriter.write(param), true);
     }
 
     this.writeReturnStatement(block, node);
@@ -138,9 +156,13 @@ export default class JSDocWriter extends Writer {
     let insertLength = 0;
     let startLine = node.loc.start.line;
 
-    if (currentBlockNode && this.options.overwriteDocs) {
-      startLine = currentBlockNode.loc.start.line;
-      insertLength = currentBlockNode.loc.end.line - startLine;
+    if (currentBlockNode) {
+      if (this.options.overwriteDocs) {
+        startLine = currentBlockNode.loc.start.line;
+        insertLength = currentBlockNode.loc.end.line - startLine + 1;
+      } else {
+        return null;
+      }
     } else if (node.decorators && node.decorators.length) {
       startLine = node.decorators[0].loc.start.line;
     }

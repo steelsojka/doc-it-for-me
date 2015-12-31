@@ -1,6 +1,6 @@
 import Writer from './Writer';
 
-export default class JSDocBlock extends Writer {
+export default class JSDocBlockWriter extends Writer {
   constructor(options = {}) {
     super(options);
 
@@ -8,11 +8,11 @@ export default class JSDocBlock extends Writer {
   }
 
   writeLine(msg, inline = false) {
-    this.block.push(`${inline ? ' ' : ' * '}${msg}`);
+    this.block.push(JSDocBlockWriter.createLine(msg, inline));
   }
 
   writeTag(tag, desc = '', inline = false) {
-    this.block.push(`${inline ? ' ' : ' * '}@${tag}${desc ? ' ' + desc : ''}`)
+    this.block.push(JSDocBlockWriter.createTag(tag, desc, inline));
   }
 
   close() {
@@ -25,5 +25,13 @@ export default class JSDocBlock extends Writer {
 
   join() {
     return this.block.join('\n')
+  }
+
+  static createLine(msg, inline = false) {
+    return `${inline ? '' : ' * '}${msg}`;
+  }
+
+  static createTag(tag, desc = '', inline = false) {
+    return `${inline ? '' : ' * '}@${tag}${desc ? ' ' + desc : ''}`;
   }
 }

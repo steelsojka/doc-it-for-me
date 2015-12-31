@@ -5,6 +5,7 @@ import isFunction from 'lodash.isfunction';
 import writers from './writers';
 import Annotation from './Annotation';
 import AnnotatedSource from './AnnotatedSource';
+import Source from './Source';
 
 export default function docItForMe(sources, options = {}) {
   const runner = new ESTreeRunner();
@@ -26,9 +27,11 @@ export default function docItForMe(sources, options = {}) {
 
   sources = Array.isArray(sources) ? sources : [sources];
 
-  return sources.map(source => {
-    return annotateSource(parseSource(runner, new Writer(options), source, options), source);
-  });
+  return sources
+    .map(source => source instanceof Source ? source : new Source({ raw: source }))
+    .map(source => {
+      return annotateSource(parseSource(runner, new Writer(options), source, options), source);
+    });
 }
 
 function getWriter(writer, config) {

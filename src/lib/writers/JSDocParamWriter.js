@@ -1,6 +1,7 @@
 import Writer from './Writer';
 import LiteralWriter from './LiteralWriter';
 import defaults from 'lodash.defaults';
+import JSDocBlockWriter from './JSDocBlockWriter';
 
 export default class JSDocParamWriter extends Writer {
   constructor(options) {
@@ -29,7 +30,7 @@ export default class JSDocParamWriter extends Writer {
       meta.path = this.options.objectPatternName;
     }
 
-    let result = `${this.writeTag()} {Object} ${meta.path} - ${options.paramDescription(this.options.objectPatternName)}`;
+    let result = `${this.writeTag()} {Object} ${meta.path} - ${this.options.paramDescription(this.options.objectPatternName)}`;
 
     for (let property of node.properties) {
       result += `\n${this.write(property, meta)}`;
@@ -44,14 +45,14 @@ export default class JSDocParamWriter extends Writer {
       return this.write(node.value, meta);
     } 
 
-    return `${this.writeTag()} {${this.options.defaultParamType}} ${meta.path}.${node.key.name} - ${options.paramDescription(node.key.name)}`;
+    return `${this.writeTag()} {${this.options.defaultParamType}} ${meta.path}.${node.key.name} - ${this.options.paramDescription(node.key.name)}`;
   }
 
   defaultWriter(node) {
     return `${this.writeTag()} {${this.options.defaultParamType}} ${node.name} - ${this.options.paramDescription(node.name)}.`;
   }
 
-  writeTag(node) {
-    return `@${this.options.paramTag}`;
+  writeTag() {
+    return JSDocBlockWriter.createTag(this.options.paramTag);
   }
 }
