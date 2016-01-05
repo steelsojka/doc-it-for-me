@@ -10,8 +10,7 @@ export default class JSDocParamWriter extends Writer {
     defaults(options, {
       defaultParamType: '*',
       paramTag: 'param',
-      paramDescription: name => `The ${name}`,
-      objectPatternName: 'config'
+      paramDescription: name => `The ${name}`
     });
 
     this.literalWriter = new LiteralWriter(options);
@@ -27,10 +26,14 @@ export default class JSDocParamWriter extends Writer {
 
   ObjectPattern(node, meta = {}) {
     if (!meta.path) {
-      meta.path = this.options.objectPatternName;
+      meta.path = [];
+      meta.depth = -1;
     }
 
-    let result = `${this.writeTag()} {Object} ${meta.path} - ${this.options.paramDescription(this.options.objectPatternName)}`;
+    meta.depth++;
+    meta.path.push('$' + meta.depth);
+
+    let result = `${this.writeTag()} {Object} ${meta.path.join('.')}}`;
 
     for (let property of node.properties) {
       result += `\n${this.write(property, meta)}`;
@@ -41,11 +44,11 @@ export default class JSDocParamWriter extends Writer {
 
   ObjectProperty(node, meta = {}) {
     if (node.value.type === 'ObjectPattern') {
-      meta.path = `${meta.path}.${node.key.name}`;
+      meta.path.push(node.key.name);
       return this.write(node.value, meta);
     } 
 
-    return `${this.writeTag()} {${this.options.defaultParamType}} ${meta.path}.${node.key.name} - ${this.options.paramDescription(node.key.name)}`;
+    return `${this.writeTag()} {${this.options.defaultParamType}} ${meta.path.join('.')}.${node.key.name} - ${this.options.paramDescription(node.key.name)}`;
   }
 
   defaultWriter(node) {
